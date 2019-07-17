@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans xsd/spring-beans-4.1.xsd">
+
+
+    <!-- Start workshop-core proxies -->
+    <import resource="classpath:com/active/fndws/base-service-proxies.xml"/>
+    <!-- End workshop-core proxies -->
+
+    <bean id="agencyManagementServiceSOAPEndPointClient"
+          factory-method="mock"
+          class="org.mockito.Mockito">
+        <constructor-arg value="com.active.services.agency.api.v1.soap.AgencyManagementServiceSOAPEndPoint"/>
+    </bean>
+
+    <bean id="passportLoginServiceClient"
+          factory-method="mock"
+          class="org.mockito.Mockito">
+        <constructor-arg value="com.active.services.passport.api.v1.soap.PassportLoginServiceSOAPEndPoint"/>
+    </bean>
+
+    <bean id="securityServiceSOAPEndPointClient"
+          factory-method="mock"
+          class="org.mockito.Mockito">
+        <constructor-arg value="com.active.services.security.api.v1.soap.SecurityServiceSOAPEndPoint"/>
+    </bean>
+
+</beans>

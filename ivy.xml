@@ -1,0 +1,29 @@
+
+<ivy-module version="2.0">
+  <info organisation="com.active.services" module="${module}"/>
+
+  <configurations>
+    <conf name="runtime-published" description=""/>
+    <conf name="runtime" description=""/>
+    <conf name="compile" visibility="private" description=""/>
+    <conf name="test" visibility="private" description=""/>
+  </configurations>
+
+  <publications>
+    <artifact name="${module}" type="jar" conf="runtime" ext="jar"/>
+  </publications>
+
+  <dependencies>
+    <!-- Published Runtime API Dependencies -->
+    <!-- Active Dependencies -->
+    <dependency org="com.active.services" name="core-server" rev="5.0.0.8"  changing="false" conf="compile->*">
+      <artifact name="core-server" type="jar" />
+      <artifact name="core-server" type="zip" />
+    </dependency>
+    <dependency org="com.google.guava" name="guava" rev="27.0.1-jre" transitive="true" conf="compile->*"/>
+    <dependency org="junit" name="junit" rev="4.9" transitive="false" conf="test->default"/>
+    <dependency org="org.mongodb" name="mongo-java-driver" rev="3.10.2"/>
+    <dependency org="com.microsoft.sqlserver" name="mssql-jdbc" rev="7.2.2.jre8"/>
+  </dependencies>
+
+</ivy-module>

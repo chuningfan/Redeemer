@@ -1,0 +1,20 @@
+IF NOT EXISTS(SELECT TOP 1 1 FROM sys.tables t WITH(NOLOCK)
+WHERE SCHEMA_NAME(schema_id) = 'dbo' AND OBJECT_NAME(object_id) ='QRTZ_LOCKS' AND type = 'U')
+BEGIN
+     CREATE TABLE [dbo].[QRTZ_LOCKS] ( 
+     [SCHED_NAME]  NVARCHAR(120)          NOT NULL,
+     [LOCK_NAME]   NVARCHAR(40)           NOT NULL,
+     [CREATED_BY]         NVARCHAR(225)        NULL,
+	 [CREATED_DT]         DATETIME                 NULL,
+	 [MODIFIED_BY]        NVARCHAR(225)        NULL,
+	 [MODIFIED_DT]        DATETIME                 NULL
+)
+END
+
+
+IF NOT EXISTS(SELECT TOP 1 1 FROM sys.tables t WITH(NOLOCK) 
+JOIN sys.indexes i ON t.object_id = i.object_id AND i.is_primary_key = 1 WHERE SCHEMA_NAME(t.schema_id) = 'dbo' AND OBJECT_NAME(t.object_id) ='QRTZ_LOCKS' AND t.type = 'U')
+BEGIN
+     ALTER TABLE dbo.QRTZ_LOCKS ADD CONSTRAINT [PK__QRTZ_LOC__7D2E9A0308B3EC83]  PRIMARY KEY CLUSTERED  ([SCHED_NAME] ASC, [LOCK_NAME] ASC)WITH (PAD_INDEX = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+END
+

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<apiPermissionList>
+    <apiPermission accessLevel="ADMIN" permissionName="permissionName" serviceName="serviceName" />
+	<apiPermission accessLevel="NONE" apiName="apiName2" permissionName="permissionName2" serviceName="serviceName2" />
+	<apiPermission accessLevel="READ_ONLY" apiName="apiName3" permissionName="permissionName3" serviceName="serviceName3" />
+	<apiPermission accessLevel="READ_WRITE" apiName="apiName4" permissionName="permissionName4" serviceName="serviceName4" />
+</apiPermissionList>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="main" name="redeemer">
+
+    <property name="ivy.deliver.revision" value="1.0.0.1-SNAPSHOT"/>
+    <property name="module" value="${ant.project.name}"/>
+    <property name="webapp-name" value="fnd-webserver-root-war"/>
+    <property name="logFile" value="FndWebServer"/>
+
+    <import file="${buildtools.dir}/build-core.xml"/>
+    <import file="${buildtools.dir}/task-tools.xml"/>
+    <import file="${buildtools.dir}/task-release-library.xml"/>
+
+    <patternset id="test.pattern">
+        <include name="**/*Test.class"/>
+        <include name="**/*TestCase.class"/>
+        <exclude name="**/Abstract*.class"/>
+        <exclude name="**/*ContainerTestCase.class"/>
+        <exclude name="**/*IntegrationTest.class"/>
+    </patternset>
+
+    <target depends="init" description="--&gt; build the jar" name="_jar">
+        <buildjar/>
+    </target>
+
+    <target description="--&gt; build the deployable as a zip" name="_build-zip"/>
+
+</project>
