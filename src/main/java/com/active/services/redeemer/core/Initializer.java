@@ -1,5 +1,6 @@
 package com.active.services.redeemer.core;
 
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -21,8 +23,6 @@ import org.springframework.util.StringUtils;
 import com.active.services.redeemer.exception.RedeemerStartupException;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
 import com.active.services.redeemer.synchronizer.MongoDataCleaner;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -190,7 +190,7 @@ public class Initializer {
 					if (!documents.isEmpty()) {
 						mCollection.insertMany(documents);
 					}
-				} catch (JsonProcessingException e) {
+				} catch (IOException e) {
 					LOG.error(e.getMessage());
 				} finally {
 					client.close();

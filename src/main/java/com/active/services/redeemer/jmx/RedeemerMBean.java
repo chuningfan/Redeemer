@@ -1,5 +1,6 @@
 package com.active.services.redeemer.jmx;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.bson.Document;
@@ -11,7 +12,6 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 
 import com.active.services.redeemer.core.Initializer;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -24,7 +24,7 @@ public class RedeemerMBean {
     @ManagedOperationParameters({
     	@ManagedOperationParameter(name = "batchSize", description = "Data size of doing synchronization per time.")
     })
-	public void syncData(int batchSize) throws JsonProcessingException {
+	public void syncData(int batchSize) throws IOException {
 		MongoClient client = null;
 		MongoDatabase mDb = null;
 		MongoCollection<Document> mCollection = null;
@@ -60,7 +60,7 @@ public class RedeemerMBean {
 		}
 	}
 	
-	private void insertIntoMongoDB(MongoCollection<Document> mCollection, List<?> dataList) throws JsonProcessingException {
+	private void insertIntoMongoDB(MongoCollection<Document> mCollection, List<?> dataList) throws IOException {
 		List<Document> documents = Lists.newArrayList();
 		for (Object obj: dataList) {
 			documents.add(Document.parse(Initializer.MAPPER.writeValueAsString(obj)));
