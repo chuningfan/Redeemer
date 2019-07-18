@@ -17,6 +17,8 @@ public interface DataSynchronizer<T> {
 	
 	List<T> fullSyncData(int batchSize, int pageNum);
 	
+	List<T> fullSyncData();
+	
 	List<Bson> indexKeys();
 	
 	String comparableUniqueKey();

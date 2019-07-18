@@ -5,10 +5,10 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedOperationParameters;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
-import com.active.services.redeemer.core.FullSyncConfiguration;
 import com.active.services.redeemer.core.Initializer;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,13 +21,13 @@ import com.mongodb.client.MongoDatabase;
 public class RedeemerMBean {
 
 	@ManagedOperation(description = "Synchronize all necessary data.")
-    @ManagedOperationParameters({})
-	public void syncData() throws JsonProcessingException {
+    @ManagedOperationParameters({
+    	@ManagedOperationParameter(name = "batchSize", description = "Data size of doing synchronization per time.")
+    })
+	public void syncData(int batchSize) throws JsonProcessingException {
 		MongoClient client = null;
 		MongoDatabase mDb = null;
 		MongoCollection<Document> mCollection = null;
-		FullSyncConfiguration fullConfig = Initializer.CXT.getBean(FullSyncConfiguration.class);
-		int batchSize = fullConfig.getBatchSize();
 		List<Bson> indexKeys = null;
 		List<?> dataList = null;
 		int dataCount = 0;
@@ -45,9 +45,14 @@ public class RedeemerMBean {
 			}
 			dataCount = sync.fullSyncDataCount();
 			if (dataCount > 0) {
-				int pageSize = dataCount/batchSize == 0 ? 1 : (dataCount/batchSize) + (dataCount/batchSize > 0 ? 1 : 0);
-				for (int pageNum = 1; pageNum <= pageSize; pageNum ++) {
-					dataList = sync.fullSyncData(batchSize, pageNum);
+				if (batchSize > 0) {
+					int pageSize = dataCount/batchSize == 0 ? 1 : (dataCount/batchSize) + (dataCount/batchSize > 0 ? 1 : 0);
+					for (int pageNum = 1; pageNum <= pageSize; pageNum ++) {
+						dataList = sync.fullSyncData(batchSize, pageNum);
+						insertIntoMongoDB(mCollection, dataList);
+					}
+				} else {
+					dataList = sync.fullSyncData();
 					insertIntoMongoDB(mCollection, dataList);
 				}
 			}
