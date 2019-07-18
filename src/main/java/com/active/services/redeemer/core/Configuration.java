@@ -17,6 +17,7 @@ public class Configuration {
 	// synchronization interval sec
 	private int syncIntervalSec;
 	
+	// interval of cleaning unused data
 	private int cleanIntervalSec;
 
 	public String getMongoDBAdresses() {

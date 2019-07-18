@@ -65,17 +65,12 @@ public class Initializer {
 				sa = new ServerAddress(array[0], Integer.parseInt(array[1]));
 				mongoAddressList.add(sa);
 			}
+			// collect synchronizer
+			collectSynchronizer();
 		} else {
-			throw new RedeemerStartupException("No mongo DB connection configuration was found!");
+			LOG.info("No valid mongo DB addresses, skip!");
 		}
-		// collect synchronizer
-		collectSynchronizer();
-		// create synchronization thread pool
-		int additionalIntervalSec = additionalConfig.getSyncIntervalSec();
-		startScheduledSynchronizer(additionalIntervalSec);
-		// prepare mongoDB cleaner
-		int cleanIntervalSec = additionalConfig.getCleanIntervalSec();
-		startMongoDataCleaner(cleanIntervalSec);
+		
 	}
 	
 	private static MongoCredential createCredential(String user, String pwd, String database) {
@@ -121,6 +116,14 @@ public class Initializer {
 			for (Entry<String, DataSynchronizer> entry: entrySet) {
 				synchronizers.add(entry.getValue());
 			}
+			// create synchronization thread pool
+			int additionalIntervalSec = additionalConfig.getSyncIntervalSec();
+			startScheduledSynchronizer(additionalIntervalSec);
+			// prepare mongoDB cleaner
+			int cleanIntervalSec = additionalConfig.getCleanIntervalSec();
+			startMongoDataCleaner(cleanIntervalSec);
+		} else {
+			LOG.info("No mongo DB synchronizer was found!");
 		}
 	}
 
