@@ -11,7 +11,9 @@ public interface DataSynchronizer<T> {
 	
 	String collectionName();
 	
-	String uniqueKey();
+	default String uniqueKey() {
+		return "id";
+	}
 	
 	List<T> fullSyncData(int batchSize, int pageNum);
 	
