@@ -39,13 +39,9 @@ public class Initializer {
 	
 	public static final ObjectMapper MAPPER = new ObjectMapper();
 	
-	static final String MONGO_PROTOCOL = "mongodb://";
-	
 	public static ApplicationContext CXT;
 	
 	static Configuration additionalConfig;
-	
-	static String mongoAddresses;
 	
 	static List<ServerAddress> mongoAddressList = Lists.newArrayList();
 	
@@ -62,21 +58,13 @@ public class Initializer {
 		String mongoAddresses = additionalConfig.getMongoDBAdresses();
 		if (null != mongoAddresses && !"".equals(mongoAddresses.trim())) {
 			List<String> addressList = Splitter.on(",").trimResults().splitToList(mongoAddresses);
-			StringBuilder builder = new StringBuilder(MONGO_PROTOCOL);
-			int i = 0;
 			ServerAddress sa = null;
 			String[] array = null;
 			for (String addr: addressList) {
 				array = addr.split(":");
 				sa = new ServerAddress(array[0], Integer.parseInt(array[1]));
 				mongoAddressList.add(sa);
-				if (i++ == 0) {
-					builder.append(addr);
-				} else {
-					builder.append(",").append(addr);
-				}
 			}
-			mongoAddresses = builder.toString();
 		} else {
 			throw new RedeemerStartupException("No mongo DB connection configuration was found!");
 		}
