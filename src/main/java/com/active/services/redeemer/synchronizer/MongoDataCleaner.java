@@ -1,6 +1,6 @@
 package com.active.services.redeemer.synchronizer;
 
-import org.bson.conversions.Bson;
+import com.mongodb.DBObject;
 
 public interface MongoDataCleaner {
 	
@@ -8,6 +8,6 @@ public interface MongoDataCleaner {
 	
 	String collectionName();
 	
-	Bson deleteFilter();
+	DBObject deleteFilter();
 	
 }

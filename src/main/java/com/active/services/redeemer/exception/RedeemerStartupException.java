@@ -1,6 +1,8 @@
 package com.active.services.redeemer.exception;
 
-public class RedeemerStartupException extends Exception {
+import org.springframework.beans.BeansException;
+
+public class RedeemerStartupException extends BeansException {
 
 	private static final long serialVersionUID = -7417854263693998615L;
 

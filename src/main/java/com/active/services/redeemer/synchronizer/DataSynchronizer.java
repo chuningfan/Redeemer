@@ -3,13 +3,11 @@ package com.active.services.redeemer.synchronizer;
 import java.util.Date;
 import java.util.List;
 
-import org.bson.conversions.Bson;
+import com.mongodb.DBObject;
 
 public interface DataSynchronizer<T> {
 
-	List<T> additionalSyncData(Long lastId, Date modifiedDate);
-	
-	String mongoDBName();
+	List<T> additionalSyncData(Date modifiedAfter);
 	
 	String collectionName();
 	
@@ -19,9 +17,7 @@ public interface DataSynchronizer<T> {
 	
 	List<T> fullSyncData();
 	
-	List<Bson> indexKeys();
-	
-	String comparableUniqueKey();
+	DBObject indexKeys();
 	
 	MongoDataCleaner mongoDataCleaner();
 	

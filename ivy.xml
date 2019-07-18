@@ -23,6 +23,8 @@
     <dependency org="com.google.guava" name="guava" rev="27.0.1-jre" transitive="true" conf="compile->*"/>
     <dependency org="junit" name="junit" rev="4.9" transitive="false" conf="test->default"/>
     <dependency org="org.mongodb" name="mongo-java-driver" rev="3.10.1"/>
+    <dependency org="org.springframework.data" name="spring-data-mongodb" rev="1.2.1.RELEASE"/>
+    <dependency org="org.springframework.data" name="spring-data-mongodb-cross-store" rev="1.2.1.RELEASE"/>
   </dependencies>
 
 </ivy-module>

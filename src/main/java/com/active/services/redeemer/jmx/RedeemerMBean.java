@@ -3,8 +3,8 @@ package com.active.services.redeemer.jmx;
 import java.io.IOException;
 import java.util.List;
 
-import org.bson.Document;
-import org.bson.conversions.Bson;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedOperationParameters;
@@ -13,35 +13,35 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import com.active.services.redeemer.core.Initializer;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
 import com.google.common.collect.Lists;
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 
 @ManagedResource(objectName = "camps-redeemer:name=Redeemer")
 public class RedeemerMBean {
 
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
 	@ManagedOperation(description = "Synchronize all necessary data.")
     @ManagedOperationParameters({
     	@ManagedOperationParameter(name = "batchSize", description = "Data size of doing synchronization per time.")
     })
 	public void syncData(int batchSize) throws IOException {
-		MongoClient client = null;
-		MongoDatabase mDb = null;
-		MongoCollection<Document> mCollection = null;
-		List<Bson> indexKeys = null;
+		String collectionName = null;
+		DBCollection mCollection = null;
+		DBObject indexKeys = null;
 		List<?> dataList = null;
 		int dataCount = 0;
 		for (DataSynchronizer<?> sync: Initializer.synchronizers) {
-			client = Initializer.getMongoClient(sync.mongoDBName());
-			mDb = client.getDatabase(sync.mongoDBName());
-			mCollection.drop();
-			mDb.createCollection(sync.collectionName());
-			mCollection = mDb.getCollection(sync.collectionName());
+			collectionName = sync.collectionName();
+			if (mongoTemplate.collectionExists(collectionName)) {
+				mongoTemplate.dropCollection(collectionName);
+			}
+			mCollection = mongoTemplate.createCollection(collectionName);
 			indexKeys = sync.indexKeys();
-			if (indexKeys != null && !indexKeys.isEmpty()) {
-				for (Bson keys: indexKeys) {
-					mCollection.createIndex(keys);
-				}
+			if (indexKeys != null) {
+				mCollection.createIndex(indexKeys);
 			}
 			dataCount = sync.fullSyncDataCount();
 			if (dataCount > 0) {
@@ -56,16 +56,15 @@ public class RedeemerMBean {
 					insertIntoMongoDB(mCollection, dataList);
 				}
 			}
-			client.close();
 		}
 	}
 	
-	private void insertIntoMongoDB(MongoCollection<Document> mCollection, List<?> dataList) throws IOException {
-		List<Document> documents = Lists.newArrayList();
+	private void insertIntoMongoDB(DBCollection mCollection, List<?> dataList) throws IOException {
+		List<DBObject> documents = Lists.newArrayList();
 		for (Object obj: dataList) {
-			documents.add(Document.parse(Initializer.MAPPER.writeValueAsString(obj)));
+			documents.add(BasicDBObject.parse(Initializer.MAPPER.writeValueAsString(obj)));
 		}
-		mCollection.insertMany(documents);
+		mCollection.insert(documents);
 	}
 	
 	

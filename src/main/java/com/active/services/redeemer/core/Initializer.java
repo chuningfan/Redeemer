@@ -12,26 +12,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.util.StringUtils;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import com.active.services.redeemer.exception.RedeemerStartupException;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
 import com.active.services.redeemer.synchronizer.MongoDataCleaner;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoCredential;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
 import com.mongodb.ServerAddress;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 
 public class Initializer {
 	
@@ -45,41 +40,19 @@ public class Initializer {
 	
 	static List<ServerAddress> mongoAddressList = Lists.newArrayList();
 	
+	private MongoTemplate mongoTemplate;
+	
 	public static List<DataSynchronizer<?>> synchronizers = Lists.newArrayList();
 	
-	Initializer(ApplicationContext cxt) throws RedeemerStartupException {
+	Initializer(ApplicationContext cxt, MongoTemplate mongoTemplate) throws RedeemerStartupException {
 		CXT = cxt;
 		additionalConfig = cxt.getBean(Configuration.class);
+		this.mongoTemplate = cxt.getBean(MongoTemplate.class);
 		init();
 	}
 
 	private void init() throws RedeemerStartupException {
-		// prepare mongoDB addresses
-		String mongoAddresses = additionalConfig.getMongoDBAdresses();
-		if (null != mongoAddresses && !"".equals(mongoAddresses.trim())) {
-			List<String> addressList = Splitter.on(",").trimResults().splitToList(mongoAddresses);
-			ServerAddress sa = null;
-			String[] array = null;
-			for (String addr: addressList) {
-				array = addr.split(":");
-				sa = new ServerAddress(array[0], Integer.parseInt(array[1]));
-				mongoAddressList.add(sa);
-			}
-			// collect synchronizer
-			collectSynchronizer();
-		} else {
-			LOG.info("No valid mongo DB addresses, skip!");
-		}
-		
-	}
-	
-	private static MongoCredential createCredential(String user, String pwd, String database) {
-		if (StringUtils.isEmpty(user) || StringUtils.isEmpty(pwd) || 
-				Configuration.NOTHING.equals(user) || Configuration.NOTHING.equals(pwd)) {
-			return null;
-		}
-		MongoCredential cr = MongoCredential.createCredential(user, database, pwd.toCharArray());
-		return cr;
+		collectSynchronizer();
 	}
 	
 	private void startMongoDataCleaner(int cleanIntervalSec) {
@@ -92,7 +65,7 @@ public class Initializer {
 				return thread;
 			}
 		});
-		ses.scheduleWithFixedDelay(new Cleaner(), 0, cleanIntervalSec, TimeUnit.SECONDS);
+		ses.scheduleWithFixedDelay(new Cleaner(mongoTemplate), 0, cleanIntervalSec, TimeUnit.SECONDS);
 	}
 
 	private void startScheduledSynchronizer(int additionalIntervalSec) {
@@ -105,7 +78,7 @@ public class Initializer {
 				return thread;
 			}
 		});
-		ses.scheduleWithFixedDelay(new Patrol(), 0, additionalIntervalSec, TimeUnit.SECONDS);
+		ses.scheduleWithFixedDelay(new Patrol(mongoTemplate), 0, additionalIntervalSec, TimeUnit.SECONDS);
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -127,96 +100,75 @@ public class Initializer {
 		}
 	}
 
-	public static MongoClient getMongoClient(String mongoDatabase) {
-		String user = additionalConfig.getMongoUser();
-		String pwd = additionalConfig.getMongoPassword();
-		MongoCredential cr = createCredential(user, pwd, mongoDatabase);
-		MongoClient client = null;
-		if (cr == null) {
-			client = new MongoClient(mongoAddressList);
-		} else {
-			client = new MongoClient(mongoAddressList, cr, null);
-		}
-		return client;
-	}
-	
-	private static final class Patrol implements Runnable {
+	private static class Patrol implements Runnable {
 		private static final ExecutorService es = Executors.newFixedThreadPool(additionalConfig.getSyncThreadPoolSize());
+		private MongoTemplate mongoTemplate;
+		private Patrol(MongoTemplate mongoTemplate) {
+			this.mongoTemplate = mongoTemplate;
+		}
 		@Override
 		public void run() {
 			if (!synchronizers.isEmpty()) {
 				for (DataSynchronizer<?> sync: synchronizers) {
-					es.submit(new SyncWorker(sync));
+					es.submit(new SyncWorker(sync, mongoTemplate));
 				}
 			}
 		}
 	}
 	
-	private static final class SyncWorker implements Runnable {
+	private static class SyncWorker implements Runnable {
 		private DataSynchronizer<?> sync;
-		private SyncWorker(DataSynchronizer<?> sync) {
+		private MongoTemplate mongoTemplate;
+		private SyncWorker(DataSynchronizer<?> sync, MongoTemplate mongoTemplate) {
 			this.sync = sync;
+			this.mongoTemplate = mongoTemplate;
 		}
 		@Override
 		public void run() {
-			MongoClient client = getMongoClient(sync.mongoDBName());
-			MongoDatabase mDb = client.getDatabase(sync.mongoDBName());
-			String comparableUniqueKey = sync.comparableUniqueKey();
-			MongoCollection<Document> mCollection = mDb.getCollection(sync.collectionName());
-			FindIterable<Document> fitr = mCollection.find()
-					.sort(BsonDocument.parse("{" + comparableUniqueKey + ": -1}")).skip(0).limit(1);
-			Long lastId = fitr.first().getLong(comparableUniqueKey);
+			String uniqueKey = sync.uniqueKey();
+			DBCollection mCollection = mongoTemplate.getCollection(sync.collectionName());
 			Calendar calendar = Calendar.getInstance();
 			calendar.setTimeInMillis(System.currentTimeMillis());
 			calendar.add(Calendar.SECOND, additionalConfig.getSyncIntervalSec() * -1);
-			List<?> additionalDataList = sync.additionalSyncData(lastId, calendar.getTime());
+			List<?> additionalDataList = sync.additionalSyncData(calendar.getTime());
 			if (additionalDataList != null && !additionalDataList.isEmpty()) {
-				List<Document> documents = Lists.newArrayList();
+				List<BasicDBObject> documents = Lists.newArrayList();
 				Document doc = null;
 				String jsonString = null;
-				Long id = null;
-				FindIterable<Document> tmpItr = null;
+				Object id = null;
 				try {
 					for (Object obj: additionalDataList) {
 						jsonString = MAPPER.writeValueAsString(obj);
 						doc = Document.parse(jsonString);
-						id = doc.getLong(comparableUniqueKey);
-						tmpItr = mCollection.find(BsonDocument.parse("{" + comparableUniqueKey + ": " + id + "}"));
-						if (tmpItr != null && tmpItr.first() != null) {
-							mCollection.deleteOne(BsonDocument.parse("{" + comparableUniqueKey + ": " + id + "}"));
-						}
-						documents.add(Document.parse(jsonString));
+						id = doc.get(uniqueKey);
+						mCollection.findAndRemove(BasicDBObject.parse("{" + uniqueKey + ": " + id + "}"));
+						documents.add(BasicDBObject.parse(jsonString));
 					}
 					if (!documents.isEmpty()) {
-						mCollection.insertMany(documents);
+						mCollection.insert(documents);
 					}
 				} catch (IOException e) {
 					LOG.error(e.getMessage());
-				} finally {
-					client.close();
 				}
-			} else {
-				client.close();
 			}
 		}
 	}
 	
-	private static final class Cleaner implements Runnable {
+	private static class Cleaner implements Runnable {
+		private MongoTemplate mongoTemplate;
+		private Cleaner(MongoTemplate mongoTemplate) {
+			this.mongoTemplate = mongoTemplate;
+		}
 		@Override
 		public void run() {
 			if (synchronizers != null && !synchronizers.isEmpty()) {
 				MongoDataCleaner cleaner = null;
-				MongoDatabase mDb = null;
-				MongoCollection<Document> mCollection = null;
-				MongoClient client = null;
+				DBCollection mCollection = null;
 				for (DataSynchronizer<?> sync: synchronizers) {
 					cleaner = sync.mongoDataCleaner();
 					if (cleaner != null) {
-						client = getMongoClient(sync.mongoDBName());
-						mDb = client.getDatabase(sync.mongoDBName());
-						mCollection = mDb.getCollection(sync.collectionName());
-						mCollection.deleteMany(cleaner.deleteFilter());
-						client.close();
+						mCollection = mongoTemplate.getCollection(sync.collectionName());
+						mCollection.remove(cleaner.deleteFilter());
 					}
 				}
 			}
