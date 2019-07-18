@@ -44,6 +44,8 @@ public class Initializer {
 	
 	public static List<DataSynchronizer<?>> synchronizers = Lists.newArrayList();
 	
+	public static List<MongoDataCleaner> cleaners = Lists.newArrayList();
+	
 	Initializer(ApplicationContext cxt, MongoTemplate mongoTemplate) throws RedeemerStartupException {
 		CXT = cxt;
 		additionalConfig = cxt.getBean(Configuration.class);
@@ -93,8 +95,15 @@ public class Initializer {
 			int additionalIntervalSec = additionalConfig.getSyncIntervalSec();
 			startScheduledSynchronizer(additionalIntervalSec);
 			// prepare mongoDB cleaner
-			int cleanIntervalSec = additionalConfig.getCleanIntervalSec();
-			startMongoDataCleaner(cleanIntervalSec);
+			Map<String, MongoDataCleaner> cleanMap = CXT.getBeansOfType(MongoDataCleaner.class);
+			if (cleanMap != null && cleanMap.size() > 0) {
+				Set<Entry<String, MongoDataCleaner>> cleanerEntrySet = Sets.newHashSet();
+				for (Entry<String, MongoDataCleaner> entry: cleanerEntrySet) {
+					cleaners.add(entry.getValue());
+				}
+				int cleanIntervalSec = additionalConfig.getCleanIntervalSec();
+				startMongoDataCleaner(cleanIntervalSec);
+			}
 		} else {
 			LOG.info("No mongo DB synchronizer was found!");
 		}
@@ -161,15 +170,11 @@ public class Initializer {
 		}
 		@Override
 		public void run() {
-			if (synchronizers != null && !synchronizers.isEmpty()) {
-				MongoDataCleaner cleaner = null;
+			if (cleaners != null && !cleaners.isEmpty()) {
 				DBCollection mCollection = null;
-				for (DataSynchronizer<?> sync: synchronizers) {
-					cleaner = sync.mongoDataCleaner();
-					if (cleaner != null) {
-						mCollection = mongoTemplate.getCollection(sync.collectionName());
-						mCollection.remove(cleaner.deleteFilter());
-					}
+				for (MongoDataCleaner cleaner: cleaners) {
+					mCollection = mongoTemplate.getCollection(cleaner.collectionName());
+					mCollection.remove(cleaner.deleteFilter());
 				}
 			}
 		}

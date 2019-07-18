@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="main" name="redeemer">
 
-    <property name="ivy.deliver.revision" value="1.0.0.1-SNAPSHOT"/>
+    <property name="ivy.deliver.revision" value="1.0.0.2-SNAPSHOT"/>
     <property name="module" value="${ant.project.name}"/>
     <property name="webapp-name" value="fnd-webserver-root-war"/>
     <property name="logFile" value="FndWebServer"/>

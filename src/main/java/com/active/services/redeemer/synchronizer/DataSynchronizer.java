@@ -19,7 +19,5 @@ public interface DataSynchronizer<T> {
 	
 	DBObject indexKeys();
 	
-	MongoDataCleaner mongoDataCleaner();
-	
 	int fullSyncDataCount();
 }
