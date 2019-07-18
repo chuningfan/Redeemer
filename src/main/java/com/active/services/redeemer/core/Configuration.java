@@ -2,13 +2,22 @@ package com.active.services.redeemer.core;
 
 public class Configuration {
 	
+	static final String NOTHING = "N/A";
+	
 	private String mongoDBAdresses; // separated by comma
 	
 	// Username of MongoDB
-	private String mongoUser;
+	private String mongoUser = NOTHING;
 		
 	// Password of MongoDB
-	private String mongoPassword;
+	private String mongoPassword = NOTHING;
+	
+	private int syncThreadPoolSize = 3;
+	
+	// synchronization interval sec
+	private int syncIntervalSec;
+	
+	private int cleanIntervalSec;
 
 	public String getMongoDBAdresses() {
 		return mongoDBAdresses;
@@ -32,6 +41,30 @@ public class Configuration {
 
 	public void setMongoPassword(String mongoPassword) {
 		this.mongoPassword = mongoPassword;
+	}
+
+	public int getSyncThreadPoolSize() {
+		return syncThreadPoolSize;
+	}
+
+	public void setSyncThreadPoolSize(int syncThreadPoolSize) {
+		this.syncThreadPoolSize = syncThreadPoolSize;
+	}
+
+	public int getSyncIntervalSec() {
+		return syncIntervalSec;
+	}
+
+	public void setSyncIntervalSec(int syncIntervalSec) {
+		this.syncIntervalSec = syncIntervalSec;
+	}
+
+	public int getCleanIntervalSec() {
+		return cleanIntervalSec;
+	}
+
+	public void setCleanIntervalSec(int cleanIntervalSec) {
+		this.cleanIntervalSec = cleanIntervalSec;
 	}
 	
 }

@@ -18,8 +18,17 @@
     	<constructor-arg name="mongoPassword" value="${redeemer.mongoPassword}" />
     </bean>
     
-    <bean id="redeemerBootstrap" class="com.active.services.redeemer.bootstrap.RedeemerBootstrap" >
-    	<constructor-arg name="redeemerConfiguration" ref="redeemerConfiguration" />
+    <bean id="redeemerBootstrap" class="com.active.services.redeemer.core.Bootstrap" />
+    
+    <bean id="redeemerOperator" class="com.active.services.redeemer.jmx.RedeemerMBean" />
+    
+    <bean id="redeemerConfig" class="com.active.services.redeemer.core.Configuration" >
+    	<property name="mongoDBAdresses" value="${redeemer.mongoDBAdresses}"/>
+    	<property name="mongoUser" value="${redeemer.mongoUser}"/>
+    	<property name="mongoPassword" value="${redeemer.mongoPassword}"/>
+    	<property name="syncThreadPoolSize" value="${redeemer.syncThreadPoolSize}"/>
+    	<property name="syncIntervalSec" value="${redeemer.syncIntervalSec}"/>
+    	<property name="cleanIntervalSec" value="${redeemer.cleanIntervalSec}"/>
     </bean>
     
  </beans>

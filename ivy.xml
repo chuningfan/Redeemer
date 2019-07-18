@@ -23,7 +23,7 @@
     <dependency org="com.google.guava" name="guava" rev="27.0.1-jre" transitive="true" conf="compile->*"/>
     <dependency org="junit" name="junit" rev="4.9" transitive="false" conf="test->default"/>
     <dependency org="org.mongodb" name="mongo-java-driver" rev="3.10.2"/>
-    <dependency org="com.microsoft.sqlserver" name="mssql-jdbc" rev="7.2.2.jre8"/>
+    <dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.9.9.1"/>
   </dependencies>
 
 </ivy-module>

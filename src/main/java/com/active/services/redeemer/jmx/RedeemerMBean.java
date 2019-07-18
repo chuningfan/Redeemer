@@ -13,7 +13,7 @@ import com.active.services.redeemer.core.Initializer;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
-import com.mongodb.client.MongoClient;
+import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -32,7 +32,7 @@ public class RedeemerMBean {
 		List<?> dataList = null;
 		int dataCount = 0;
 		for (DataSynchronizer<?> sync: Initializer.synchronizers) {
-			client = Initializer.getMongoClient();
+			client = Initializer.getMongoClient(sync.mongoDBName());
 			mDb = client.getDatabase(sync.mongoDBName());
 			mCollection.drop();
 			mDb.createCollection(sync.collectionName());

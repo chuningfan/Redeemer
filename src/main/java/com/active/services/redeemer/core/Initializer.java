@@ -16,6 +16,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.StringUtils;
 
 import com.active.services.redeemer.exception.RedeemerStartupException;
 import com.active.services.redeemer.synchronizer.DataSynchronizer;
@@ -25,9 +26,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -41,15 +43,17 @@ public class Initializer {
 	
 	public static ApplicationContext CXT;
 	
-	static AdditionalSyncConfiguration additionalConfig;
+	static Configuration additionalConfig;
 	
 	static String mongoAddresses;
+	
+	static List<ServerAddress> mongoAddressList = Lists.newArrayList();
 	
 	public static List<DataSynchronizer<?>> synchronizers = Lists.newArrayList();
 	
 	Initializer(ApplicationContext cxt) throws RedeemerStartupException {
 		CXT = cxt;
-		additionalConfig = cxt.getBean(AdditionalSyncConfiguration.class);
+		additionalConfig = cxt.getBean(Configuration.class);
 		init();
 	}
 
@@ -60,7 +64,12 @@ public class Initializer {
 			List<String> addressList = Splitter.on(",").trimResults().splitToList(mongoAddresses);
 			StringBuilder builder = new StringBuilder(MONGO_PROTOCOL);
 			int i = 0;
+			ServerAddress sa = null;
+			String[] array = null;
 			for (String addr: addressList) {
+				array = addr.split(":");
+				sa = new ServerAddress(array[0], Integer.parseInt(array[1]));
+				mongoAddressList.add(sa);
 				if (i++ == 0) {
 					builder.append(addr);
 				} else {
@@ -79,6 +88,15 @@ public class Initializer {
 		// prepare mongoDB cleaner
 		int cleanIntervalSec = additionalConfig.getCleanIntervalSec();
 		startMongoDataCleaner(cleanIntervalSec);
+	}
+	
+	private static MongoCredential createCredential(String user, String pwd, String database) {
+		if (StringUtils.isEmpty(user) || StringUtils.isEmpty(pwd) || 
+				Configuration.NOTHING.equals(user) || Configuration.NOTHING.equals(pwd)) {
+			return null;
+		}
+		MongoCredential cr = MongoCredential.createCredential(user, database, pwd.toCharArray());
+		return cr;
 	}
 	
 	private void startMongoDataCleaner(int cleanIntervalSec) {
@@ -118,8 +136,17 @@ public class Initializer {
 		}
 	}
 
-	public static MongoClient getMongoClient() {
-		return MongoClients.create(mongoAddresses);
+	public static MongoClient getMongoClient(String mongoDatabase) {
+		String user = additionalConfig.getMongoUser();
+		String pwd = additionalConfig.getMongoPassword();
+		MongoCredential cr = createCredential(user, pwd, mongoDatabase);
+		MongoClient client = null;
+		if (cr == null) {
+			client = new MongoClient(mongoAddressList);
+		} else {
+			client = new MongoClient(mongoAddressList, cr, null);
+		}
+		return client;
 	}
 	
 	private static final class Patrol implements Runnable {
@@ -141,7 +168,7 @@ public class Initializer {
 		}
 		@Override
 		public void run() {
-			MongoClient client = getMongoClient();
+			MongoClient client = getMongoClient(sync.mongoDBName());
 			MongoDatabase mDb = client.getDatabase(sync.mongoDBName());
 			String comparableUniqueKey = sync.comparableUniqueKey();
 			MongoCollection<Document> mCollection = mDb.getCollection(sync.collectionName());
@@ -190,16 +217,17 @@ public class Initializer {
 				MongoDataCleaner cleaner = null;
 				MongoDatabase mDb = null;
 				MongoCollection<Document> mCollection = null;
-				MongoClient client = getMongoClient();
+				MongoClient client = null;
 				for (DataSynchronizer<?> sync: synchronizers) {
 					cleaner = sync.mongoDataCleaner();
 					if (cleaner != null) {
+						client = getMongoClient(sync.mongoDBName());
 						mDb = client.getDatabase(sync.mongoDBName());
 						mCollection = mDb.getCollection(sync.collectionName());
 						mCollection.deleteMany(cleaner.deleteFilter());
+						client.close();
 					}
 				}
-				client.close();
 			}
 		}
 	}
